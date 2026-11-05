@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>SDC Weather App – Login</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap"/>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200"/>
+  <link rel="stylesheet" href="style.css"/>
+</head>
+<body class="auth-page">
+  <main class="auth-container">
+    <div class="auth-card">
+
+      <!-- Header -->
+      <div class="auth-header">
+        <div class="auth-icon-wrapper">
+          <span role="img" aria-label="weather icon">🌤️</span>
+        </div>
+        <h1 class="auth-title">SDC Weather App</h1>
+        <p class="auth-subtitle">
+          Your college's live weather dashboard.<br/>
+          Select your portal to continue.
+        </p>
+      </div>
+
+      <!-- Primary Role Selector: User Login vs Admin Login -->
+      <div class="auth-role-tabs mb-sm">
+        <div class="tab-bar tab-bar-roles" role="tablist" aria-label="Portal Selection">
+          <button class="tab-btn active" id="role-tab-user" type="button" role="tab" aria-selected="true">
+            <span class="material-symbols-outlined" style="font-size:18px;">person</span>
+            User Login
+          </button>
+          <button class="tab-btn" id="role-tab-admin" type="button" role="tab" aria-selected="false">
+            <span class="material-symbols-outlined" style="font-size:18px;">admin_panel_settings</span>
+            Admin Login
+          </button>
+        </div>
+      </div>
+
+      <!-- User Mode Sub-Tabs: Login vs Sign Up (hidden in Admin mode) -->
+      <div class="auth-tabs mb-sm" id="user-subtabs-container">
+        <div class="tab-bar tab-bar-sub" role="tablist" aria-label="User Authentication Options">
+          <button class="tab-btn active" id="tab-login" type="button" role="tab" aria-selected="true">Login</button>
+          <button class="tab-btn" id="tab-signup" type="button" role="tab" aria-selected="false">Sign Up</button>
+        </div>
+      </div>
+
+      <!-- Status Alert Box -->
+      <div class="auth-status">
+        <div class="alert alert-info" id="status-box">
+          <span class="material-symbols-outlined alert-icon" id="status-icon">info</span>
+          <span id="status-text">Ready for User login</span>
+        </div>
+      </div>
+
+      <!-- Auth Form -->
+      <form id="auth-form" novalidate>
+
+        <!-- Signup Only: Full Name -->
+        <div class="form-group hidden" id="field-name">
+          <label class="form-label" for="input-name">Full Name</label>
+          <input
+            class="form-input"
+            id="input-name"
+            type="text"
+            placeholder="Enter your full name"
+            autocomplete="name"
+          />
+        </div>
+
+        <!-- Email -->
+        <div class="form-group">
+          <label class="form-label" for="input-email" id="label-email">Email Address</label>
+          <input
+            class="form-input"
+            id="input-email"
+            type="email"
+            placeholder="Enter your email"
+            autocomplete="email"
+            required
+          />
+        </div>
+
+        <!-- Password -->
+        <div class="form-group">
+          <label class="form-label" for="input-password" id="label-password">Password</label>
+          <input
+            class="form-input"
+            id="input-password"
+            type="password"
+            placeholder="Enter your password"
+            autocomplete="current-password"
+            required
+          />
+        </div>
+
+        <!-- Signup Only: Confirm Password -->
+        <div class="form-group hidden" id="field-confirm-password">
+          <label class="form-label" for="input-confirm-password">Confirm Password</label>
+          <input
+            class="form-input"
+            id="input-confirm-password"
+            type="password"
+            placeholder="Re-enter your password"
+            autocomplete="new-password"
+          />
+        </div>
+
+        <!-- Submit -->
+        <button class="btn btn-primary btn-full" id="submit-btn" type="submit">
+          Login as User
+        </button>
+      </form>
+
+      <!-- Footer -->
+      <div class="auth-footer">
+        <p>User accounts are stored in your browser's LocalStorage.<br/>
+        This app is a college project — not for production use.</p>
+      </div>
+
+    </div>
+  </main>
+
+  <!-- Toast container -->
+  <div class="toast-container" id="toast-container"></div>
+
+  <script src="script.js"></script>
+</body>
+</html>

@@ -1,0 +1,296 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>SDC Weather – Admin Dashboard</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap"/>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200"/>
+  <link rel="stylesheet" href="style.css"/>
+</head>
+<body class="app-page admin-page">
+
+  <!-- Top Navbar -->
+  <nav class="navbar">
+    <button class="admin-sidebar-toggle" id="sidebar-toggle" type="button" aria-label="Toggle menu">☰</button>
+    <a href="admin.html" class="navbar-brand">
+      <span class="brand-icon">🌤️</span>
+      <span>SDC Weather</span>
+    </a>
+    <span class="badge badge-admin" style="margin-left:var(--space-sm);">Admin</span>
+    <div class="navbar-end">
+      <span class="navbar-greeting">Logged in as <strong id="admin-greeting-name">Administrator</strong></span>
+      <button class="btn btn-outline btn-sm" id="logout-btn" type="button">
+        <span class="material-symbols-outlined" style="font-size:16px;">logout</span>
+        Logout
+      </button>
+    </div>
+  </nav>
+
+  <div class="admin-layout">
+
+    <!-- Sidebar Navigation -->
+    <aside class="admin-sidebar" id="admin-sidebar">
+      <div class="admin-sidebar-title">Navigation</div>
+      <nav>
+        <a href="#" class="sidebar-link active" data-section="dashboard">
+          <span>📊</span> Dashboard
+        </a>
+        <a href="#" class="sidebar-link" data-section="users">
+          <span>👥</span> Users
+        </a>
+        <a href="#" class="sidebar-link" data-section="tips">
+          <span>💡</span> Weather Tips
+        </a>
+        <a href="#" class="sidebar-link" data-section="announcements">
+          <span>📢</span> Announcements
+        </a>
+        <a href="#" class="sidebar-link" data-section="activity">
+          <span>📋</span> Activity Log
+        </a>
+      </nav>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="admin-main">
+
+      <!-- ── Dashboard Section ── -->
+      <section id="section-dashboard" class="admin-section">
+        <div class="section-header">
+          <div>
+            <h1 class="section-title">📊 Dashboard</h1>
+            <p class="section-subtitle">Overview of app activity and data.</p>
+          </div>
+        </div>
+
+        <!-- Stat Cards -->
+        <div class="grid grid-3 mb-lg">
+          <div class="stat-card">
+            <div class="stat-card-icon">👥</div>
+            <div class="stat-card-label">Total Users</div>
+            <div class="stat-card-value" id="stat-users">0</div>
+            <div class="stat-card-sub">Registered accounts</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-card-icon">🔍</div>
+            <div class="stat-card-label">Total Searches</div>
+            <div class="stat-card-value" id="stat-searches">0</div>
+            <div class="stat-card-sub">Weather lookups made</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-card-icon">💡</div>
+            <div class="stat-card-label">Weather Tips</div>
+            <div class="stat-card-value" id="stat-tips">0</div>
+            <div class="stat-card-sub">Tips shown to users</div>
+          </div>
+        </div>
+
+        <!-- Recent Activity Preview -->
+        <div class="card">
+          <div class="card-header">
+            <h2>Recent Activity</h2>
+            <button class="btn btn-secondary btn-sm" id="dash-view-all-activity" type="button">View All</button>
+          </div>
+          <div class="card-body" style="padding:0;">
+            <div class="activity-list" id="dash-activity-list">
+              <div class="activity-item" style="padding: var(--space-md);">
+                <span class="text-muted">No activity yet.</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ── Users Section ── -->
+      <section id="section-users" class="admin-section hidden">
+        <div class="section-header">
+          <div>
+            <h1 class="section-title">👥 Users</h1>
+            <p class="section-subtitle">Manage registered user accounts.</p>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-header">
+            <h2>Registered Users</h2>
+            <div style="display:flex; gap:var(--space-sm); align-items:center;">
+              <input
+                class="form-input"
+                id="user-search-input"
+                type="search"
+                placeholder="Search by name or email..."
+                style="max-width:250px;"
+                aria-label="Search users"
+              />
+            </div>
+          </div>
+          <div class="card-body" style="padding:0;">
+            <div class="table-wrapper" style="border:none; border-radius:0;">
+              <table class="table" id="users-table">
+                <thead>
+                  <tr>
+                    <th>#</th>
+                    <th>Name</th>
+                    <th>Email</th>
+                    <th>Role</th>
+                    <th>Actions</th>
+                  </tr>
+                </thead>
+                <tbody id="users-table-body">
+                  <tr>
+                    <td colspan="5" style="text-align:center; color:var(--outline); padding:var(--space-xl);">
+                      No users registered yet.
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ── Tips Section ── -->
+      <section id="section-tips" class="admin-section hidden">
+        <div class="section-header">
+          <div>
+            <h1 class="section-title">💡 Weather Tips</h1>
+            <p class="section-subtitle">Add tips shown to users based on weather conditions.</p>
+          </div>
+        </div>
+
+        <!-- Add Tip Form -->
+        <div class="card mb-md">
+          <div class="card-header">
+            <h2>Add New Tip</h2>
+          </div>
+          <div class="card-body">
+            <form id="tip-form">
+              <div class="form-group">
+                <label class="form-label" for="tip-input">Tip Message</label>
+                <textarea
+                  class="form-input"
+                  id="tip-input"
+                  placeholder="e.g., 🌧️ Don't forget your umbrella today!"
+                  rows="2"
+                ></textarea>
+              </div>
+              <button class="btn btn-primary" type="submit">
+                <span class="material-symbols-outlined" style="font-size:16px;">add</span>
+                Add Tip
+              </button>
+            </form>
+          </div>
+        </div>
+
+        <!-- Tips List -->
+        <div class="card">
+          <div class="card-header">
+            <h2>All Tips</h2>
+            <span class="badge badge-neutral" id="tips-count-badge">0 tips</span>
+          </div>
+          <div class="card-body" style="padding:0;">
+            <div id="tips-list">
+              <div class="tip-item">
+                <span class="text-muted" style="padding: var(--space-md);">No tips added yet.</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ── Announcements Section ── -->
+      <section id="section-announcements" class="admin-section hidden">
+        <div class="section-header">
+          <div>
+            <h1 class="section-title">📢 Announcements</h1>
+            <p class="section-subtitle">Post announcements visible to all users on their dashboard.</p>
+          </div>
+        </div>
+
+        <!-- Add Announcement Form -->
+        <div class="card mb-md">
+          <div class="card-header">
+            <h2>Post New Announcement</h2>
+          </div>
+          <div class="card-body">
+            <form id="announcement-form">
+              <div class="form-group">
+                <label class="form-label" for="announcement-input">Announcement Text</label>
+                <textarea
+                  class="form-input"
+                  id="announcement-input"
+                  placeholder="e.g., 📢 College Weather Station maintenance on 5th Nov. Data may be delayed."
+                  rows="2"
+                ></textarea>
+              </div>
+              <button class="btn btn-primary" type="submit">
+                <span class="material-symbols-outlined" style="font-size:16px;">campaign</span>
+                Post Announcement
+              </button>
+            </form>
+          </div>
+        </div>
+
+        <!-- Announcements List -->
+        <div class="card">
+          <div class="card-header">
+            <h2>Active Announcements</h2>
+            <span class="badge badge-neutral" id="ann-count-badge">0 announcements</span>
+          </div>
+          <div class="card-body" style="padding:0;">
+            <div id="announcements-list">
+              <div class="ann-item">
+                <span class="text-muted" style="padding: var(--space-md);">No announcements yet.</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ── Activity Section ── -->
+      <section id="section-activity" class="admin-section hidden">
+        <div class="section-header">
+          <div>
+            <h1 class="section-title">📋 Activity Log</h1>
+            <p class="section-subtitle">Recent user and system actions (last 50 entries).</p>
+          </div>
+          <button class="btn btn-secondary btn-sm" id="clear-activity-btn" type="button">
+            <span class="material-symbols-outlined" style="font-size:15px;">delete_sweep</span>
+            Clear Log
+          </button>
+        </div>
+
+        <div class="card">
+          <div class="card-body" style="padding:0;">
+            <div class="activity-list" id="activity-list">
+              <div class="activity-item" style="padding: var(--space-md);">
+                <span class="text-muted">No activity recorded yet.</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+    </main>
+  </div>
+
+  <!-- Confirmation Modal -->
+  <div class="modal-overlay hidden" id="confirm-modal" hidden style="display: none;">
+    <div class="modal-content card">
+      <h3 id="modal-title">Confirm Action</h3>
+      <p id="modal-message">Are you sure you want to perform this action?</p>
+      <div class="modal-actions">
+        <button class="btn btn-secondary" id="modal-cancel" type="button">Cancel</button>
+        <button class="btn btn-danger" id="modal-confirm" type="button">Delete</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast container -->
+  <div class="toast-container" id="toast-container"></div>
+
+  <script src="script.js"></script>
+</body>
+</html>

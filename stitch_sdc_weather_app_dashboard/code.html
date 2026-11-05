@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+
+<html lang="en"><head><meta charset="utf-8"/><meta content="width=device-width, initial-scale=1.0" name="viewport"/><meta content="web_blank" name="shell-type"/><title>Weather App - Authentication</title><link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@100..900&display=swap" rel="stylesheet"/><style>@layer base{html,body{margin:0;padding:0;}body{overscroll-behavior:none;}main>:first-child{margin-top:0!important;}main>:last-child{margin-bottom:0!important;}}::-webkit-scrollbar{display:none;}</style><script src="https://cdn.tailwindcss.com"></script><script id="tailwind-config">tailwind.config={darkMode:"class",theme:{extend:{"colors":{"surface-container-high":"#e2e7ff","inverse-on-surface":"#eef0ff","on-error":"#ffffff","on-primary":"#ffffff","on-tertiary-fixed-variant":"#384953","primary-fixed":"#cce5ff","on-surface":"#131b2e","on-primary-container":"#fdfcff","on-primary-fixed-variant":"#004b73","tertiary-fixed":"#d3e5f1","on-tertiary-container":"#fbfcff","outline-variant":"#bfc7d2","tertiary-container":"#667781","surface-container-highest":"#dae2fd","primary":"#006194","secondary-container":"#40c2fd","inverse-surface":"#283044","on-secondary-fixed-variant":"#004c69","secondary":"#00668a","inverse-primary":"#93ccff","on-error-container":"#93000a","surface-dim":"#d2d9f4","surface":"#faf8ff","primary-fixed-dim":"#93ccff","surface-variant":"#dae2fd","on-tertiary-fixed":"#0c1e26","secondary-fixed-dim":"#7bd0ff","on-surface-variant":"#3f4850","on-secondary-fixed":"#001e2c","on-background":"#131b2e","primary-container":"#007bb9","tertiary-fixed-dim":"#b7c9d5","surface-container-lowest":"#ffffff","error":"#ba1a1a","surface-tint":"#006398","surface-container-low":"#f2f3ff","on-primary-fixed":"#001d31","surface-container":"#eaedff","secondary-fixed":"#c4e7ff","on-tertiary":"#ffffff","on-secondary":"#ffffff","outline":"#707881","background":"#faf8ff","tertiary":"#4e5e68","surface-bright":"#faf8ff","error-container":"#ffdad6","on-secondary-container":"#004d6a"},"borderRadius":{"DEFAULT":"0.25rem","lg":"0.5rem","xl":"0.75rem","full":"9999px"},"spacing":{"space-lg":"1.5rem","space-xs":"0.25rem","gutter-desktop":"1.5rem","margin":"1rem","space-xl":"2rem","space-sm":"0.5rem","margin-desktop":"2rem","gutter":"1rem","space-md":"1rem"},"fontFamily":{"label-md":["Inter"],"body-sm":["Inter"],"headline-md":["Inter"],"body-md":["Inter"],"display":["Inter"],"label-sm":["Inter"],"headline-lg-mobile":["Inter"],"display-mobile":["Inter"],"headline-sm":["Inter"],"body-lg":["Inter"],"headline-lg":["Inter"]},"fontSize":{"label-md":["14px",{"lineHeight":"20px","fontWeight":"500"}],"body-sm":["12px",{"lineHeight":"16px","fontWeight":"400"}],"headline-md":["20px",{"lineHeight":"28px","fontWeight":"600"}],"body-md":["14px",{"lineHeight":"20px","fontWeight":"400"}],"display":["36px",{"lineHeight":"44px","fontWeight":"700"}],"label-sm":["12px",{"lineHeight":"16px","fontWeight":"500"}],"headline-lg-mobile":["22px",{"lineHeight":"28px","fontWeight":"600"}],"display-mobile":["28px",{"lineHeight":"36px","fontWeight":"700"}],"headline-sm":["16px",{"lineHeight":"24px","fontWeight":"600"}],"body-lg":["16px",{"lineHeight":"24px","fontWeight":"400"}],"headline-lg":["28px",{"lineHeight":"36px","fontWeight":"600"}]}}}}</script></head><body class="bg-surface font-body-md text-on-surface min-h-screen flex flex-col justify-center"><main class="w-full bg-surface"><div class="flex flex-col w-full items-center justify-center p-4">
+<div class="w-full max-w-md bg-surface-container-lowest rounded-lg shadow-md p-6 sm:p-8" style="border: 1px solid #cbd5e1;">
+<div class="text-center mb-6">
+<div class="inline-flex items-center justify-center w-12 h-12 rounded-full bg-surface-container-low mb-3">
+<span aria-label="weather icon" class="text-2xl" role="img">🌤️</span>
+</div>
+<h1 class="font-headline-lg text-headline-lg text-on-surface">Weather App</h1>
+<p class="font-body-sm text-body-sm text-on-surface-variant mt-1.5">
+        Welcome! Login or create an account to view live campus weather updates.
+      </p>
+</div>
+<!-- Tab Toggle -->
+<div class="flex bg-surface-container-low p-1 rounded-md mb-6" role="tablist">
+<button class="flex-1 py-1.5 text-center font-label-md text-label-md rounded bg-surface-container-lowest text-on-surface shadow-sm transition-all duration-150" id="tab-login" onclick="switchMode('login')" type="button">
+        Login
+      </button>
+<button class="flex-1 py-1.5 text-center font-label-md text-label-md rounded text-on-surface-variant hover:text-on-surface transition-all duration-150" id="tab-signup" onclick="switchMode('signup')" type="button">
+        Sign Up
+      </button>
+</div>
+<!-- Status Alert Box -->
+<div class="mb-5 p-3 rounded text-left flex items-start gap-2 bg-surface-container-low" id="status-box" style="border: 1px solid #cbd5e1;">
+<span class="material-symbols-outlined text-sm mt-0.5 text-secondary" id="status-icon">info</span>
+<span class="font-body-sm text-body-sm text-on-surface-variant" id="status-text">Ready for login</span>
+</div>
+<!-- Role Selection -->
+<div class="mb-5">
+<label class="block font-label-sm text-label-sm text-on-surface mb-2">Portal Role</label>
+<div class="flex items-center gap-6">
+<label class="inline-flex items-center gap-2 cursor-pointer font-body-sm text-body-sm text-on-surface">
+<input checked="" class="w-4 h-4 accent-primary cursor-pointer" name="auth-role" type="radio" value="student"/>
+<span>Student / User</span>
+</label>
+<label class="inline-flex items-center gap-2 cursor-pointer font-body-sm text-body-sm text-on-surface">
+<input class="w-4 h-4 accent-primary cursor-pointer" name="auth-role" type="radio" value="admin"/>
+<span>Admin</span>
+</label>
+</div>
+</div>
+<!-- Form Container -->
+<form id="auth-form" onsubmit="handleAuthSubmit(event)">
+<!-- Signup Field: Full Name -->
+<div class="hidden mb-4" id="field-name">
+<label class="block font-label-sm text-label-sm text-on-surface mb-1" for="input-name">Full Name</label>
+<input class="w-full px-3 py-2 bg-surface-container-lowest font-body-md text-body-md text-on-surface rounded focus:outline-none" id="input-name" placeholder="enter full name" style="border: 1px solid #cbd5e1;" type="text"/>
+</div>
+<!-- Email Field -->
+<div class="mb-4">
+<label class="block font-label-sm text-label-sm text-on-surface mb-1" for="input-email">Email Address</label>
+<input class="w-full px-3 py-2 bg-surface-container-lowest font-body-md text-body-md text-on-surface rounded focus:outline-none" id="input-email" placeholder="enter your email" required="" style="border: 1px solid #cbd5e1;" type="email"/>
+</div>
+<!-- Password Field -->
+<div class="mb-4">
+<label class="block font-label-sm text-label-sm text-on-surface mb-1" for="input-password">Password</label>
+<input class="w-full px-3 py-2 bg-surface-container-lowest font-body-md text-body-md text-on-surface rounded focus:outline-none" id="input-password" placeholder="enter your password" required="" style="border: 1px solid #cbd5e1;" type="password"/>
+</div>
+<!-- Signup Field: Confirm Password -->
+<div class="hidden mb-4" id="field-confirm-password">
+<label class="block font-label-sm text-label-sm text-on-surface mb-1" for="input-confirm-password">Confirm Password</label>
+<input class="w-full px-3 py-2 bg-surface-container-lowest font-body-md text-body-md text-on-surface rounded focus:outline-none" id="input-confirm-password" placeholder="re-enter password" style="border: 1px solid #cbd5e1;" type="password"/>
+</div>
+<!-- Submit Action -->
+<button class="w-full mt-2 py-2 px-4 rounded font-label-md text-label-md text-on-primary transition-colors cursor-pointer" id="submit-btn" onmouseout="this.style.backgroundColor='#0284c7'" onmouseover="this.style.backgroundColor='#0369a1'" style="background-color: #0284c7;" type="submit">
+        Login
+      </button>
+</form>
+<!-- Project Demo Hint -->
+<div class="mt-6 pt-4 text-center" style="border-top: 1px solid #cbd5e1;">
+<p class="font-body-sm text-body-sm text-tertiary">
+        Demo Admin: <span class="font-medium text-on-surface">admin@college.edu</span> | <span class="font-medium text-on-surface">admin123</span>
+</p>
+<p class="font-label-sm text-label-sm text-outline mt-1 text-[11px]">
+        (Users are saved in browser LocalStorage)
+      </p>
+</div>
+</div>
+</div>
+<script>
+  let currentMode = 'login';
+
+  function switchMode(mode) {
+    currentMode = mode;
+    const tabLogin = document.getElementById('tab-login');
+    const tabSignup = document.getElementById('tab-signup');
+    const fieldName = document.getElementById('field-name');
+    const fieldConfirm = document.getElementById('field-confirm-password');
+    const submitBtn = document.getElementById('submit-btn');
+    const statusBox = document.getElementById('status-box');
+    const statusText = document.getElementById('status-text');
+    const statusIcon = document.getElementById('status-icon');
+
+    // Reset status styling
+    statusBox.className = "mb-5 p-3 rounded text-left flex items-start gap-2 bg-surface-container-low";
+    statusBox.style.border = "1px solid #cbd5e1";
+    statusIcon.className = "material-symbols-outlined text-sm mt-0.5 text-secondary";
+    statusIcon.innerText = "info";
+
+    if (mode === 'login') {
+      tabLogin.className = "flex-1 py-1.5 text-center font-label-md text-label-md rounded bg-surface-container-lowest text-on-surface shadow-sm transition-all duration-150";
+      tabSignup.className = "flex-1 py-1.5 text-center font-label-md text-label-md rounded text-on-surface-variant hover:text-on-surface transition-all duration-150";
+      fieldName.classList.add('hidden');
+      fieldConfirm.classList.add('hidden');
+      submitBtn.innerText = 'Login';
+      statusText.innerText = 'Ready for login';
+      document.getElementById('input-name').removeAttribute('required');
+      document.getElementById('input-confirm-password').removeAttribute('required');
+    } else {
+      tabSignup.className = "flex-1 py-1.5 text-center font-label-md text-label-md rounded bg-surface-container-lowest text-on-surface shadow-sm transition-all duration-150";
+      tabLogin.className = "flex-1 py-1.5 text-center font-label-md text-label-md rounded text-on-surface-variant hover:text-on-surface transition-all duration-150";
+      fieldName.classList.remove('hidden');
+      fieldConfirm.classList.remove('hidden');
+      submitBtn.innerText = 'Sign Up';
+      statusText.innerText = 'Fill details to register new user';
+      document.getElementById('input-name').setAttribute('required', 'true');
+      document.getElementById('input-confirm-password').setAttribute('required', 'true');
+    }
+  }
+
+  function showStatus(message, isError) {
+    const statusBox = document.getElementById('status-box');
+    const statusText = document.getElementById('status-text');
+    const statusIcon = document.getElementById('status-icon');
+
+    statusText.innerText = message;
+    if (isError) {
+      statusBox.className = "mb-5 p-3 rounded text-left flex items-start gap-2 bg-error-container";
+      statusBox.style.border = "1px solid #ba1a1a";
+      statusIcon.className = "material-symbols-outlined text-sm mt-0.5 text-error";
+      statusIcon.innerText = "error";
+      statusText.className = "font-body-sm text-body-sm text-on-error-container";
+    } else {
+      statusBox.className = "mb-5 p-3 rounded text-left flex items-start gap-2 bg-surface-container-high";
+      statusBox.style.border = "1px solid #006194";
+      statusIcon.className = "material-symbols-outlined text-sm mt-0.5 text-primary";
+      statusIcon.innerText = "check_circle";
+      statusText.className = "font-body-sm text-body-sm text-on-surface";
+    }
+  }
+
+  function handleAuthSubmit(e) {
+    e.preventDefault();
+    const email = document.getElementById('input-email').value.trim();
+    const password = document.getElementById('input-password').value;
+    const role = document.querySelector('input[name="auth-role"]:checked').value;
+
+    let users = [];
+    try {
+      users = JSON.parse(localStorage.getItem('weather_app_users') || '[]');
+    } catch(err) {
+      users = [];
+    }
+
+    if (currentMode === 'signup') {
+      const name = document.getElementById('input-name').value.trim();
+      const confirmPassword = document.getElementById('input-confirm-password').value;
+
+      if (password !== confirmPassword) {
+        showStatus('Passwords do not match.', true);
+        return;
+      }
+
+      if (email.toLowerCase() === 'admin@college.edu' || users.some(u => u.email.toLowerCase() === email.toLowerCase())) {
+        showStatus('Account already exists with this email.', true);
+        return;
+      }
+
+      const newUser = { name, email, password, role };
+      users.push(newUser);
+      localStorage.setItem('weather_app_users', JSON.stringify(users));
+
+      showStatus(`Account created for ${name}! You may now login.`, false);
+      setTimeout(() => {
+        switchMode('login');
+        document.getElementById('input-email').value = email;
+        document.getElementById('input-password').value = '';
+      }, 900);
+    } else {
+      if (email.toLowerCase() === 'admin@college.edu') {
+        if (password === 'admin123') {
+          showStatus('Demo Admin authenticated successfully! Redirecting...', false);
+        } else {
+          showStatus('Invalid credentials for Admin.', true);
+        }
+        return;
+      }
+
+      const matchedUser = users.find(u => u.email.toLowerCase() === email.toLowerCase() && u.password === password);
+      if (matchedUser) {
+        showStatus(`Welcome back, ${matchedUser.name || matchedUser.email}! Redirecting...`, false);
+      } else {
+        showStatus('User not found or invalid password.', true);
+      }
+    }
+  }
+</script></main></body></html>
