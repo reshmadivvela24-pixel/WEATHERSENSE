@@ -1,229 +1,231 @@
 import React, { useState, useEffect } from 'react';
 import Navbar from '../components/Navbar';
+import Sidebar from '../components/Sidebar';
+import DashboardCards from '../components/DashboardCards';
 import {
   getUsers,
-  saveUsers,
-  getCurrentUser,
+  deleteUser,
+  getRecentSearches,
+  getAnnouncements,
+  addAnnouncement,
+  deleteAnnouncement,
+  getMetrics,
   DEFAULT_ADMIN,
-  BACKUP_ADMIN_EMAIL,
-  getStoredItem,
-  setStoredItem,
-  STORAGE_KEYS,
-} from '../utils/storage';
+  BACKUP_ADMIN,
+} from '../services/storageService';
 
-export default function AdminDashboard({ onLogout }) {
-  const currentUser = getCurrentUser();
-
+export default function AdminDashboard() {
   const [users, setUsers] = useState([]);
-  const [searchTerm, setSearchTerm] = useState('');
-  const [selectedUser, setSelectedUser] = useState(null); // For "View Details" modal
-  const [deleteConfirmUser, setDeleteConfirmUser] = useState(null); // For "Delete" modal
+  const [userSearch, setUserSearch] = useState('');
+  const [selectedUser, setSelectedUser] = useState(null); // Modal for user details
+  const [userToDelete, setUserToDelete] = useState(null); // Confirmation modal
+  const [recentSearches, setRecentSearches] = useState([]);
+  const [announcements, setAnnouncements] = useState([]);
+  const [metrics, setMetrics] = useState({ totalSearches: 0 });
+
+  // Announcement Form State
+  const [newTitle, setNewTitle] = useState('');
+  const [newContent, setNewContent] = useState('');
+
+  // Notification Toast
   const [feedback, setFeedback] = useState(null);
-  const [searchCount, setSearchCount] = useState(0);
 
-  // Load registered users and search metrics on mount
-  useEffect(() => {
-    refreshUsers();
-    const count = getStoredItem(STORAGE_KEYS.SEARCH_COUNT, 0);
-    setSearchCount(count);
-  }, []);
-
-  const refreshUsers = () => {
-    const list = getUsers();
-    setUsers(list);
+  const refreshAdminData = () => {
+    setUsers(getUsers());
+    setRecentSearches(getRecentSearches());
+    setAnnouncements(getAnnouncements());
+    setMetrics(getMetrics());
   };
+
+  useEffect(() => {
+    refreshAdminData();
+  }, []);
 
   const showNotification = (msg, type = 'success') => {
     setFeedback({ msg, type });
-    setTimeout(() => setFeedback(null), 3000);
+    setTimeout(() => setFeedback(null), 3500);
   };
 
-  // Filter users by search term
+  // Filter Users
   const filteredUsers = users.filter((u) => {
-    const term = searchTerm.toLowerCase();
+    const term = userSearch.toLowerCase();
     return (
       (u.name && u.name.toLowerCase().includes(term)) ||
-      (u.email && u.email.toLowerCase().includes(term))
+      (u.email && u.email.toLowerCase().includes(term)) ||
+      (u.role && u.role.toLowerCase().includes(term))
     );
   });
 
-  // Handle Delete Confirmation
-  const confirmDelete = () => {
-    if (!deleteConfirmUser) return;
+  // Handle Delete User
+  const handleConfirmDelete = () => {
+    if (!userToDelete) return;
 
-    // Check if trying to delete default admin
-    const emailLower = deleteConfirmUser.email.toLowerCase();
+    // Protection rule: Never allow deleting predefined admin
+    const emailLower = userToDelete.email.toLowerCase();
     if (
       emailLower === DEFAULT_ADMIN.email.toLowerCase() ||
-      emailLower === BACKUP_ADMIN_EMAIL.toLowerCase()
+      emailLower === BACKUP_ADMIN.email.toLowerCase()
     ) {
-      showNotification('The predefined Administrator account cannot be deleted.', 'error');
-      setDeleteConfirmUser(null);
+      showNotification('The Master Administrator account is protected and cannot be deleted.', 'error');
+      setUserToDelete(null);
       return;
     }
 
-    const updated = users.filter((u) => u.id !== deleteConfirmUser.id);
-    saveUsers(updated);
+    const updated = deleteUser(userToDelete.id);
     setUsers(updated);
-    showNotification(`User account for "${deleteConfirmUser.name}" has been deleted.`);
-    setDeleteConfirmUser(null);
+    showNotification(`User "${userToDelete.name}" (${userToDelete.email}) was deleted successfully.`);
+    setUserToDelete(null);
+  };
+
+  // Handle Add Announcement
+  const handleAddAnnouncement = (e) => {
+    e.preventDefault();
+    if (!newTitle.trim() || !newContent.trim()) {
+      showNotification('Please enter both title and advisory content.', 'error');
+      return;
+    }
+
+    addAnnouncement({ title: newTitle, content: newContent });
+    setNewTitle('');
+    setNewContent('');
+    setAnnouncements(getAnnouncements());
+    showNotification('Campus Weather Advisory published successfully.');
+  };
+
+  // Handle Delete Announcement
+  const handleDeleteAnn = (id) => {
+    const updated = deleteAnnouncement(id);
+    setAnnouncements(updated);
+    showNotification('Advisory announcement removed.');
   };
 
   return (
-    <div className="app-page">
-      <Navbar user={currentUser} onLogout={onLogout} />
+    <div className="ws-page-wrapper">
+      <Navbar />
 
-      <main className="container" style={{ paddingTop: 'var(--space-xl)', paddingBottom: 'var(--space-2xl)' }}>
-        {/* Feedback Alert */}
-        {feedback && (
-          <div
-            className={`alert ${feedback.type === 'error' ? 'alert-error' : 'alert-success'}`}
-            style={{ marginBottom: 'var(--space-lg)' }}
-          >
-            <span className="material-symbols-outlined alert-icon">
-              {feedback.type === 'error' ? 'error' : 'check_circle'}
-            </span>
-            <span>{feedback.msg}</span>
-          </div>
-        )}
+      <div className="ws-dashboard-layout">
+        <Sidebar />
 
-        {/* Section Header */}
-        <div className="section-header">
-          <div>
-            <h1 className="section-title">📊 Administrator Control Panel</h1>
-            <p className="section-subtitle">
-              Manage student accounts, view system analytics, and supervise registered users.
-            </p>
-          </div>
-          <div>
-            <span className="badge badge-admin">Logged in: {currentUser?.email}</span>
-          </div>
-        </div>
-
-        {/* Dashboard Metric Statistics Cards */}
-        <div className="grid grid-3 mb-lg">
-          <div className="stat-card">
-            <div className="stat-card-icon">👥</div>
-            <div className="stat-card-label">Registered Users</div>
-            <div className="stat-card-value">{users.length}</div>
-            <div className="stat-card-sub">Student & faculty accounts in Local Storage</div>
-          </div>
-
-          <div className="stat-card">
-            <div className="stat-card-icon">🔍</div>
-            <div className="stat-card-label">Total Weather Searches</div>
-            <div className="stat-card-value">{searchCount}</div>
-            <div className="stat-card-sub">Open-Meteo API queries executed</div>
-          </div>
-
-          <div className="stat-card">
-            <div className="stat-card-icon">🛡️</div>
-            <div className="stat-card-label">Admin Privileges</div>
-            <div className="stat-card-value">ACTIVE</div>
-            <div className="stat-card-sub">Full user deletion & supervision rights</div>
-          </div>
-        </div>
-
-        {/* User Management Table Card */}
-        <section className="card">
-          <div className="card-header">
-            <h2>👥 Registered User Accounts ({users.length})</h2>
-            <div style={{ display: 'flex', gap: 'var(--space-sm)', alignItems: 'center' }}>
-              <input
-                className="form-input"
-                style={{ maxWidth: '280px' }}
-                type="search"
-                placeholder="Search by name or email..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                aria-label="Search users"
-              />
+        <main className="ws-main-content">
+          {/* Header Banner */}
+          <div className="ws-admin-header ws-glass">
+            <div>
+              <div className="ws-admin-badge">System Administrator Portal</div>
+              <h2 className="ws-admin-title">SDC Weather Sense Control Center</h2>
+              <p className="ws-admin-desc">
+                Review registered student users, inspect real-time query metrics, and publish campus advisories.
+              </p>
+            </div>
+            <div className="ws-admin-chip">
+              <span className="ws-chip-dot"></span>
+              <span>Live Database Mode</span>
             </div>
           </div>
 
-          <div className="card-body" style={{ padding: 0 }}>
-            <div className="table-wrapper" style={{ border: 'none', borderRadius: 0 }}>
-              <table className="table">
+          {/* Toast Notification */}
+          {feedback && (
+            <div className={`ws-alert ${feedback.type === 'error' ? 'ws-alert-danger' : 'ws-alert-success'}`}>
+              <span className="ws-alert-icon">{feedback.type === 'error' ? '⚠️' : '✓'}</span>
+              <span>{feedback.msg}</span>
+            </div>
+          )}
+
+          {/* Dashboard Metrics Cards */}
+          <DashboardCards
+            totalUsers={users.length}
+            totalSearches={metrics.totalSearches || recentSearches.length}
+            favoriteCount={4}
+            systemStatus="Operational"
+          />
+
+          {/* Section: Registered Users Management */}
+          <section className="ws-admin-section ws-glass">
+            <div className="ws-section-header">
+              <div>
+                <h3 className="ws-section-heading">Registered Student Accounts</h3>
+                <p className="ws-section-sub">
+                  Total {users.length} registered accounts in Browser Local Storage
+                </p>
+              </div>
+
+              {/* User search bar */}
+              <div className="ws-table-search">
+                <span className="ws-search-icon">🔍</span>
+                <input
+                  type="text"
+                  placeholder="Filter users by name or email..."
+                  value={userSearch}
+                  onChange={(e) => setUserSearch(e.target.value)}
+                  className="ws-input-sm"
+                />
+              </div>
+            </div>
+
+            {/* Users Table */}
+            <div className="ws-table-container">
+              <table className="ws-table">
                 <thead>
                   <tr>
-                    <th>#</th>
-                    <th>Full Name</th>
+                    <th>User</th>
                     <th>Email Address</th>
                     <th>Role</th>
                     <th>Registration Date</th>
-                    <th>Actions</th>
+                    <th style={{ textAlign: 'right' }}>Actions</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {/* Predefined System Administrator Row */}
-                  <tr style={{ backgroundColor: 'var(--surface-container-low)' }}>
-                    <td>★</td>
-                    <td>
-                      <strong>{DEFAULT_ADMIN.name}</strong>
-                    </td>
-                    <td>{DEFAULT_ADMIN.email}</td>
-                    <td>
-                      <span className="badge badge-admin">ADMINISTRATOR</span>
-                    </td>
-                    <td>Default System Account</td>
-                    <td>
-                      <button
-                        className="btn btn-secondary btn-sm"
-                        onClick={() => setSelectedUser(DEFAULT_ADMIN)}
-                        type="button"
-                      >
-                        View Details
-                      </button>
-                    </td>
-                  </tr>
-
-                  {/* Registered Users Rows */}
                   {filteredUsers.length === 0 ? (
                     <tr>
-                      <td
-                        colSpan={6}
-                        style={{
-                          textAlign: 'center',
-                          color: 'var(--outline)',
-                          padding: 'var(--space-xl)',
-                        }}
-                      >
-                        {searchTerm
-                          ? 'No users match your search query.'
-                          : 'No regular users registered yet. Register a new user on the Signup page.'}
+                      <td colSpan="5" className="ws-table-empty">
+                        No registered users found matching "{userSearch}".
                       </td>
                     </tr>
                   ) : (
-                    filteredUsers.map((user, idx) => (
-                      <tr key={user.id || user.email}>
-                        <td>{idx + 1}</td>
-                        <td>{user.name}</td>
-                        <td>{user.email}</td>
+                    filteredUsers.map((u) => (
+                      <tr key={u.id}>
                         <td>
-                          <span className="badge badge-neutral">{user.role || 'user'}</span>
+                          <div className="ws-table-user">
+                            <span className="ws-user-avatar-sm">
+                              {(u.name ? u.name[0] : 'U').toUpperCase()}
+                            </span>
+                            <span className="ws-user-name-bold">{u.name || 'Unnamed'}</span>
+                          </div>
+                        </td>
+                        <td>{u.email}</td>
+                        <td>
+                          <span
+                            className={`ws-badge ${u.role === 'admin' ? 'ws-badge-admin' : 'ws-badge-user'}`}
+                          >
+                            {u.role === 'admin' ? 'Administrator' : 'Student / User'}
+                          </span>
                         </td>
                         <td>
-                          {user.createdAt
-                            ? new Date(user.createdAt).toLocaleDateString()
-                            : 'Registered'}
+                          {u.createdAt
+                            ? new Date(u.createdAt).toLocaleDateString('en-US', {
+                                month: 'short',
+                                day: 'numeric',
+                                year: 'numeric',
+                              })
+                            : 'Pre-seeded'}
                         </td>
-                        <td>
-                          <div style={{ display: 'flex', gap: '6px' }}>
+                        <td style={{ textAlign: 'right' }}>
+                          <button
+                            type="button"
+                            className="ws-btn ws-btn-sm ws-btn-secondary"
+                            onClick={() => setSelectedUser(u)}
+                            style={{ marginRight: '6px' }}
+                          >
+                            Details
+                          </button>
+                          {u.role !== 'admin' && (
                             <button
-                              className="btn btn-secondary btn-sm"
-                              onClick={() => setSelectedUser(user)}
                               type="button"
-                            >
-                              View Details
-                            </button>
-                            <button
-                              className="btn btn-danger btn-sm"
-                              onClick={() => setDeleteConfirmUser(user)}
-                              type="button"
+                              className="ws-btn ws-btn-sm ws-btn-danger"
+                              onClick={() => setUserToDelete(u)}
                             >
                               Delete
                             </button>
-                          </div>
+                          )}
                         </td>
                       </tr>
                     ))
@@ -231,73 +233,203 @@ export default function AdminDashboard({ onLogout }) {
                 </tbody>
               </table>
             </div>
-          </div>
-        </section>
+          </section>
 
-        {/* Modal: View User Details */}
-        {selectedUser && (
-          <div className="modal-overlay" style={{ display: 'flex' }}>
-            <div className="modal-content card">
-              <h3>User Account Details</h3>
-              <div style={{ margin: 'var(--space-md) 0', fontSize: '14px', lineHeight: '1.8' }}>
-                <div>
-                  <strong>Account ID:</strong> {selectedUser.id || 'N/A'}
+          {/* Section: Recently Searched Cities Analytics & Campus Advisories Grid */}
+          <div className="ws-admin-two-col">
+            {/* Recent Searches Analytics */}
+            <section className="ws-admin-section ws-glass">
+              <h3 className="ws-section-heading">Recent Search Analytics</h3>
+              <p className="ws-section-sub">Live city queries tracked across all user sessions</p>
+
+              {recentSearches.length === 0 ? (
+                <p className="ws-muted ws-mt-md">No queries recorded yet.</p>
+              ) : (
+                <div className="ws-recent-list ws-mt-md">
+                  {recentSearches.map((s, idx) => {
+                    const cityName = typeof s === 'string' ? s : s.city;
+                    const country = typeof s === 'object' ? s.country : '';
+                    const time =
+                      typeof s === 'object' && s.timestamp
+                        ? new Date(s.timestamp).toLocaleTimeString([], {
+                            hour: '2-digit',
+                            minute: '2-digit',
+                          })
+                        : 'Recent';
+
+                    return (
+                      <div key={idx} className="ws-recent-item">
+                        <div className="ws-recent-city-block">
+                          <span className="ws-pin">📍</span>
+                          <div>
+                            <strong>{cityName}</strong>
+                            {country && <span className="ws-muted-country">, {country}</span>}
+                          </div>
+                        </div>
+                        <span className="ws-recent-time-badge">{time}</span>
+                      </div>
+                    );
+                  })}
                 </div>
-                <div>
-                  <strong>Full Name:</strong> {selectedUser.name}
+              )}
+            </section>
+
+            {/* Campus Weather Advisories / Announcements Manager */}
+            <section className="ws-admin-section ws-glass">
+              <h3 className="ws-section-heading">Campus Advisories</h3>
+              <p className="ws-section-sub">Publish weather bulletins for student dashboards</p>
+
+              <form onSubmit={handleAddAnnouncement} className="ws-ann-form ws-mt-md">
+                <input
+                  type="text"
+                  placeholder="Advisory Title (e.g. Thunderstorm Watch)"
+                  value={newTitle}
+                  onChange={(e) => setNewTitle(e.target.value)}
+                  className="ws-input-sm"
+                  required
+                />
+                <textarea
+                  placeholder="Detailed student advisory message..."
+                  value={newContent}
+                  onChange={(e) => setNewContent(e.target.value)}
+                  className="ws-textarea-sm"
+                  rows={2}
+                  required
+                />
+                <button type="submit" className="ws-btn ws-btn-primary ws-btn-sm">
+                  Publish Advisory
+                </button>
+              </form>
+
+              <div className="ws-ann-list ws-mt-md">
+                {announcements.map((a) => (
+                  <div key={a.id} className="ws-ann-item">
+                    <div className="ws-ann-meta">
+                      <strong>{a.title}</strong>
+                      <button
+                        type="button"
+                        className="ws-ann-del"
+                        onClick={() => handleDeleteAnn(a.id)}
+                        title="Delete announcement"
+                      >
+                        ✕
+                      </button>
+                    </div>
+                    <p className="ws-ann-body">{a.content}</p>
+                    <span className="ws-ann-date">{a.date}</span>
+                  </div>
+                ))}
+              </div>
+            </section>
+          </div>
+        </main>
+      </div>
+
+      {/* User Details Modal */}
+      {selectedUser && (
+        <div className="ws-modal-backdrop" onClick={() => setSelectedUser(null)}>
+          <div className="ws-modal ws-glass" onClick={(e) => e.stopPropagation()}>
+            <div className="ws-modal-header">
+              <h3 className="ws-modal-title">Student Profile Details</h3>
+              <button
+                type="button"
+                className="ws-modal-close"
+                onClick={() => setSelectedUser(null)}
+              >
+                ✕
+              </button>
+            </div>
+            <div className="ws-modal-body">
+              <div className="ws-modal-avatar">
+                {(selectedUser.name ? selectedUser.name[0] : 'U').toUpperCase()}
+              </div>
+              <h4 className="ws-modal-username">{selectedUser.name}</h4>
+              <span className={`ws-badge ${selectedUser.role === 'admin' ? 'ws-badge-admin' : 'ws-badge-user'}`}>
+                {selectedUser.role === 'admin' ? 'Administrator' : 'Student / User'}
+              </span>
+
+              <div className="ws-modal-fields ws-mt-md">
+                <div className="ws-detail-row">
+                  <span className="ws-detail-label">Email:</span>
+                  <span className="ws-detail-value">{selectedUser.email}</span>
                 </div>
-                <div>
-                  <strong>Email:</strong> {selectedUser.email}
+                <div className="ws-detail-row">
+                  <span className="ws-detail-label">User ID:</span>
+                  <span className="ws-detail-value"><code>{selectedUser.id}</code></span>
                 </div>
-                <div>
-                  <strong>Assigned Role:</strong>{' '}
-                  <span className={selectedUser.role === 'admin' ? 'badge badge-admin' : 'badge badge-info'}>
-                    {selectedUser.role?.toUpperCase()}
+                <div className="ws-detail-row">
+                  <span className="ws-detail-label">Phone:</span>
+                  <span className="ws-detail-value">{selectedUser.phone || 'Not provided'}</span>
+                </div>
+                <div className="ws-detail-row">
+                  <span className="ws-detail-label">Bio / Major:</span>
+                  <span className="ws-detail-value">{selectedUser.bio || 'B.Tech Student'}</span>
+                </div>
+                <div className="ws-detail-row">
+                  <span className="ws-detail-label">Account Created:</span>
+                  <span className="ws-detail-value">
+                    {selectedUser.createdAt
+                      ? new Date(selectedUser.createdAt).toLocaleString()
+                      : 'Pre-seeded demo user'}
                   </span>
                 </div>
-                <div>
-                  <strong>Registered On:</strong>{' '}
-                  {selectedUser.createdAt ? new Date(selectedUser.createdAt).toLocaleString() : 'Permanent Admin'}
-                </div>
-              </div>
-              <div className="modal-actions">
-                <button
-                  className="btn btn-primary"
-                  onClick={() => setSelectedUser(null)}
-                  type="button"
-                >
-                  Close
-                </button>
               </div>
             </div>
+            <div className="ws-modal-footer">
+              <button
+                type="button"
+                className="ws-btn ws-btn-secondary"
+                onClick={() => setSelectedUser(null)}
+              >
+                Close
+              </button>
+            </div>
           </div>
-        )}
+        </div>
+      )}
 
-        {/* Modal: Confirm Delete User */}
-        {deleteConfirmUser && (
-          <div className="modal-overlay" style={{ display: 'flex' }}>
-            <div className="modal-content card">
-              <h3>Confirm User Deletion</h3>
+      {/* Delete User Confirmation Modal */}
+      {userToDelete && (
+        <div className="ws-modal-backdrop" onClick={() => setUserToDelete(null)}>
+          <div className="ws-modal ws-glass" onClick={(e) => e.stopPropagation()}>
+            <div className="ws-modal-header">
+              <h3 className="ws-modal-title">Confirm Account Deletion</h3>
+              <button
+                type="button"
+                className="ws-modal-close"
+                onClick={() => setUserToDelete(null)}
+              >
+                ✕
+              </button>
+            </div>
+            <div className="ws-modal-body">
               <p>
-                Are you sure you want to permanently delete the account for{' '}
-                <strong>{deleteConfirmUser.name}</strong> ({deleteConfirmUser.email})?
+                Are you sure you want to permanently delete user account for{' '}
+                <strong>{userToDelete.name}</strong> ({userToDelete.email})?
               </p>
-              <div className="modal-actions">
-                <button
-                  className="btn btn-secondary"
-                  onClick={() => setDeleteConfirmUser(null)}
-                  type="button"
-                >
-                  Cancel
-                </button>
-                <button className="btn btn-danger" onClick={confirmDelete} type="button">
-                  Confirm Delete
-                </button>
-              </div>
+              <p className="ws-muted ws-mt-sm">
+                This record will be removed from browser Local Storage. This action cannot be undone.
+              </p>
+            </div>
+            <div className="ws-modal-footer">
+              <button
+                type="button"
+                className="ws-btn ws-btn-secondary"
+                onClick={() => setUserToDelete(null)}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                className="ws-btn ws-btn-danger"
+                onClick={handleConfirmDelete}
+              >
+                Yes, Delete User
+              </button>
             </div>
           </div>
-        )}
-      </main>
+        </div>
+      )}
     </div>
   );
 }

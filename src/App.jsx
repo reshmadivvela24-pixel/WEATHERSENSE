@@ -1,79 +1,97 @@
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
-import Login from './pages/Login';
-import Signup from './pages/Signup';
-import AdminDashboard from './pages/AdminDashboard';
+import { AuthProvider } from './context/AuthContext';
+import { WeatherProvider } from './context/WeatherContext';
+
+// Pages
+import HomePage from './pages/HomePage';
+import LoginPage from './pages/LoginPage';
+import SignupPage from './pages/SignupPage';
+import AdminLoginPage from './pages/AdminLoginPage';
 import UserDashboard from './pages/UserDashboard';
+import AdminDashboard from './pages/AdminDashboard';
+import ForecastPage from './pages/ForecastPage';
+import FavoritesPage from './pages/FavoritesPage';
+import ProfilePage from './pages/ProfilePage';
+import NotFoundPage from './pages/NotFoundPage';
+
+// Route Protection Component
 import ProtectedRoute from './components/ProtectedRoute';
-import { getCurrentUser } from './utils/storage';
 
 export default function App() {
-  const [currentUser, setCurrentUser] = useState(getCurrentUser());
-
-  useEffect(() => {
-    // Keep user state synchronized with localStorage
-    const handleStorageChange = () => {
-      setCurrentUser(getCurrentUser());
-    };
-    window.addEventListener('storage', handleStorageChange);
-    return () => window.removeEventListener('storage', handleStorageChange);
-  }, []);
-
-  const handleLoginSuccess = (user) => {
-    setCurrentUser(user);
-  };
-
-  const handleLogout = () => {
-    setCurrentUser(null);
-  };
-
   return (
-    <Routes>
-      {/* Default route redirect based on session */}
-      <Route
-        path="/"
-        element={
-          currentUser ? (
-            currentUser.role === 'admin' ? (
-              <Navigate to="/admin" replace />
-            ) : (
-              <Navigate to="/user" replace />
-            )
-          ) : (
-            <Navigate to="/login" replace />
-          )
-        }
-      />
+    <AuthProvider>
+      <WeatherProvider>
+        <Routes>
+          {/* Public Landing & Presentation Route */}
+          <Route path="/" element={<HomePage />} />
 
-      {/* Public Authentication Routes */}
-      <Route
-        path="/login"
-        element={<Login onLoginSuccess={handleLoginSuccess} />}
-      />
-      <Route path="/signup" element={<Signup />} />
+          {/* Authentication Routes */}
+          <Route path="/login" element={<LoginPage />} />
+          <Route path="/signup" element={<SignupPage />} />
+          <Route path="/admin/login" element={<AdminLoginPage />} />
+          <Route path="/admin-login" element={<Navigate to="/admin/login" replace />} />
 
-      {/* Protected Administrator Route */}
-      <Route
-        path="/admin"
-        element={
-          <ProtectedRoute allowedRole="admin">
-            <AdminDashboard onLogout={handleLogout} />
-          </ProtectedRoute>
-        }
-      />
+          {/* Protected Normal User Routes */}
+          <Route
+            path="/dashboard"
+            element={
+              <ProtectedRoute allowedRole="user">
+                <UserDashboard />
+              </ProtectedRoute>
+            }
+          />
+          {/* Backward compatibility alias for /user */}
+          <Route
+            path="/user"
+            element={
+              <ProtectedRoute allowedRole="user">
+                <UserDashboard />
+              </ProtectedRoute>
+            }
+          />
 
-      {/* Protected Normal User Route */}
-      <Route
-        path="/user"
-        element={
-          <ProtectedRoute allowedRole="user">
-            <UserDashboard onLogout={handleLogout} />
-          </ProtectedRoute>
-        }
-      />
+          <Route
+            path="/forecast"
+            element={
+              <ProtectedRoute>
+                <ForecastPage />
+              </ProtectedRoute>
+            }
+          />
 
-      {/* Fallback for undefined paths */}
-      <Route path="*" element={<Navigate to="/" replace />} />
-    </Routes>
+          <Route
+            path="/favorites"
+            element={
+              <ProtectedRoute>
+                <FavoritesPage />
+              </ProtectedRoute>
+            }
+          />
+
+          <Route
+            path="/profile"
+            element={
+              <ProtectedRoute>
+                <ProfilePage />
+              </ProtectedRoute>
+            }
+          />
+
+          {/* Protected Administrator Route */}
+          <Route
+            path="/admin"
+            element={
+              <ProtectedRoute allowedRole="admin">
+                <AdminDashboard />
+              </ProtectedRoute>
+            }
+          />
+
+          {/* 404 Route for college project requirement */}
+          <Route path="*" element={<NotFoundPage />} />
+        </Routes>
+      </WeatherProvider>
+    </AuthProvider>
   );
 }

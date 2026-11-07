@@ -1,76 +1,158 @@
 import React from 'react';
-import { getWeatherDetails, convertTemp } from '../utils/weatherApi';
+import { useWeather } from '../context/WeatherContext';
+import {
+  getWeatherDetails,
+  formatTemp,
+  formatTime,
+} from '../services/weatherService';
 
-export default function WeatherCard({ city, country, weather, unit }) {
-  if (!weather) return null;
+export default function WeatherCard() {
+  const {
+    currentCity,
+    currentCountry,
+    weatherData,
+    loading,
+    error,
+    unit,
+    isFavorite,
+    toggleFavorite,
+    fetchCurrentLocation,
+  } = useWeather();
 
-  const { condition, icon } = getWeatherDetails(weather.weather_code);
-  const currentTemp = convertTemp(weather.temperature_2m, unit);
-  const feelsLike = convertTemp(weather.apparent_temperature, unit);
-  const humidity = weather.relative_humidity_2m;
-  const windSpeed = Math.round(weather.wind_speed_10m);
+  if (loading) {
+    return (
+      <div className="ws-weather-card ws-glass ws-loading-card">
+        <div className="ws-spinner"></div>
+        <p className="ws-loading-text">Fetching live Open-Meteo weather data...</p>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="ws-weather-card ws-glass ws-error-card">
+        <span className="ws-error-icon">⚠️</span>
+        <h3 className="ws-error-title">Unable to Load Weather</h3>
+        <p className="ws-error-desc">{error}</p>
+        <button
+          type="button"
+          className="ws-btn ws-btn-primary ws-mt-md"
+          onClick={fetchCurrentLocation}
+        >
+          Try Current Location
+        </button>
+      </div>
+    );
+  }
+
+  if (!weatherData || !weatherData.current) {
+    return (
+      <div className="ws-weather-card ws-glass">
+        <p className="ws-muted">Search for a city or click "My Location" to view live forecast.</p>
+      </div>
+    );
+  }
+
+  const { current } = weatherData;
+  const weatherDetails = getWeatherDetails(current.weatherCode);
+  const isCityFavorite = isFavorite(currentCity);
 
   return (
-    <section className="weather-card" aria-label="Current Weather Information">
-      <div
-        style={{
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'flex-start',
-          flexWrap: 'wrap',
-          gap: 'var(--space-md)',
-        }}
-      >
-        <div>
-          <div className="weather-city">{city}</div>
-          <div className="weather-country">{country || 'Global Forecast'}</div>
-
-          <div
-            style={{
-              display: 'flex',
-              alignItems: 'flex-end',
-              gap: '8px',
-              marginBottom: 'var(--space-sm)',
-            }}
-          >
-            <span className="temp-display">{currentTemp}</span>
-            <span className="temp-unit">°{unit}</span>
+    <div className="ws-weather-card ws-glass">
+      {/* Header with City & Favorite Toggle */}
+      <div className="ws-card-header">
+        <div className="ws-card-location">
+          <div className="ws-location-row">
+            <span className="ws-loc-icon">📍</span>
+            <h2 className="ws-city-title">{currentCity}</h2>
+            {currentCountry && <span className="ws-country-pill">{currentCountry}</span>}
           </div>
+          <span className="ws-weather-time">
+            Live observation • {new Date().toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}
+          </span>
+        </div>
 
-          <div className="weather-condition">
-            <span className="weather-icon-lg">{icon}</span>
-            <span>{condition}</span>
+        <button
+          type="button"
+          className={`ws-fav-toggle-btn ${isCityFavorite ? 'is-fav' : ''}`}
+          onClick={() => toggleFavorite(currentCity)}
+          title={isCityFavorite ? 'Remove from favorites' : 'Save to favorite cities'}
+        >
+          <span className="ws-star-icon">{isCityFavorite ? '★' : '☆'}</span>
+          <span>{isCityFavorite ? 'Saved' : 'Favorite'}</span>
+        </button>
+      </div>
+
+      {/* Main Temperature & Condition Display */}
+      <div className="ws-card-hero">
+        <div className="ws-hero-temp-block">
+          <span className="ws-big-temp">{formatTemp(current.temperature, unit)}</span>
+          <span className="ws-temp-unit">°{unit}</span>
+        </div>
+
+        <div className="ws-hero-condition-block">
+          <span className="ws-hero-weather-icon">{weatherDetails.icon}</span>
+          <div className="ws-hero-cond-text">
+            <h3 className="ws-condition-name">{weatherDetails.condition}</h3>
+            <span className="ws-feels-like">
+              Feels like {formatTemp(current.feelsLike, unit)}°{unit}
+            </span>
           </div>
         </div>
       </div>
 
-      {/* Atmospheric Metrics */}
-      <div className="weather-meta">
-        <span className="weather-chip">
-          <span className="material-symbols-outlined chip-icon">thermostat</span>
-          Feels Like: {feelsLike}°{unit}
-        </span>
-        <span className="weather-chip">
-          <span className="material-symbols-outlined chip-icon">water_drop</span>
-          Humidity: {humidity}%
-        </span>
-        <span className="weather-chip">
-          <span className="material-symbols-outlined chip-icon">air</span>
-          Wind Speed: {windSpeed} km/h
-        </span>
-      </div>
+      {/* Atmospheric Metrics Grid (Humidity, Wind, Pressure, Visibility, Sunrise, Sunset) */}
+      <div className="ws-metrics-grid">
+        <div className="ws-metric-box">
+          <div className="ws-metric-icon">💧</div>
+          <div className="ws-metric-info">
+            <span className="ws-metric-label">Humidity</span>
+            <span className="ws-metric-val">{current.humidity}%</span>
+          </div>
+        </div>
 
-      {/* Helpful Student Weather Advisory */}
-      <div className="weather-tip-box" style={{ marginTop: 'var(--space-md)' }}>
-        <span className="tip-icon">💡</span>
-        <span>
-          {weather.weather_code >= 51
-            ? 'Rainy conditions outside – take an umbrella to campus labs.'
-            : weather.weather_code === 0
-            ? 'Clear and sunny sky – great weather for campus outdoor sports!'
-            : 'Mild campus conditions – have a productive academic day!'}
-        </span>
+        <div className="ws-metric-box">
+          <div className="ws-metric-icon">💨</div>
+          <div className="ws-metric-info">
+            <span className="ws-metric-label">Wind Speed</span>
+            <span className="ws-metric-val">{current.windSpeed} km/h</span>
+          </div>
+        </div>
+
+        <div className="ws-metric-box">
+          <div className="ws-metric-icon">⏲️</div>
+          <div className="ws-metric-info">
+            <span className="ws-metric-label">Pressure</span>
+            <span className="ws-metric-val">{current.pressure} hPa</span>
+          </div>
+        </div>
+
+        <div className="ws-metric-box">
+          <div className="ws-metric-info-visibility">
+            <div className="ws-metric-icon">👁️</div>
+            <div className="ws-metric-info">
+              <span className="ws-metric-label">Visibility</span>
+              <span className="ws-metric-val">{current.visibility} km</span>
+            </div>
+          </div>
+        </div>
+
+        <div className="ws-metric-box">
+          <div className="ws-metric-icon">🌅</div>
+          <div className="ws-metric-info">
+            <span className="ws-metric-label">Sunrise</span>
+            <span className="ws-metric-val">{formatTime(current.sunrise)}</span>
+          </div>
+        </div>
+
+        <div className="ws-metric-box">
+          <div className="ws-metric-icon">🌇</div>
+          <div className="ws-metric-info">
+            <span className="ws-metric-label">Sunset</span>
+            <span className="ws-metric-val">{formatTime(current.sunset)}</span>
+          </div>
+        </div>
       </div>
-    </section>
+    </div>
   );
 }

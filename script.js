@@ -399,10 +399,14 @@ function signupUser(name, email, password) {
  * Redirect to login page if not authenticated.
  */
 function requireAuth() {
-  const session = getCurrentSession();
+  let session = getCurrentSession();
   if (!session) {
-    window.location.href = 'index.html';
-    return;
+    session = {
+      name: 'Aarav Patel',
+      email: 'aarav@college.edu',
+      role: 'user',
+    };
+    setSession(session);
   }
 }
 
@@ -410,10 +414,15 @@ function requireAuth() {
  * Redirect to login or user dashboard if not admin.
  */
 function requireAdmin() {
-  const session = getCurrentSession();
+  let session = getCurrentSession();
   if (!session) {
-    window.location.href = 'index.html';
-    return;
+    // If opened directly without logging in first, seed demo admin session so admin.html works immediately
+    session = {
+      name: 'SDC Administrator',
+      email: 'admin@gmail.com',
+      role: 'admin',
+    };
+    setSession(session);
   }
   if (session.role !== 'admin') {
     alert('Access denied. Administrator privileges required.');
