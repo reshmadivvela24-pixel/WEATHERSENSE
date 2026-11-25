@@ -37,7 +37,7 @@ export default function ForecastPage() {
           <div className="ws-forecast-page-header ws-glass">
             <div>
               <div className="ws-badge ws-badge-info">Multi-Day Projections</div>
-              <h2 className="ws-admin-title">5-Day Meteorological Forecast</h2>
+              <h2 className="ws-admin-title">7-Day Meteorological Forecast</h2>
               <p className="ws-admin-desc">
                 Extended atmospheric models for <strong>{currentCity}</strong>
                 {currentCountry && `, ${currentCountry}`}
@@ -67,7 +67,7 @@ export default function ForecastPage() {
           {/* Forecast Cards Grid */}
           {weatherData && weatherData.daily ? (
             <div className="ws-forecast-page-grid">
-              {weatherData.daily.time.slice(0, 5).map((date, idx) => {
+              {weatherData.daily.time.slice(0, 7).map((date, idx) => {
                 const dayData = {
                   date,
                   weatherCode: weatherData.daily.weatherCode[idx],

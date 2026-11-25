@@ -77,11 +77,11 @@ export default function Signup() {
     if (result.success) {
       setStatus({
         type: 'success',
-        message: result.message + ' Redirecting to Login...',
+        message: result.message + ' Redirecting to Dashboard...',
       });
       setTimeout(() => {
         setLoading(false);
-        navigate('/login');
+        navigate('/dashboard');
       }, 1000);
     } else {
       setLoading(false);

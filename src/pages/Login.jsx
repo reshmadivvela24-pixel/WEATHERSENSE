@@ -159,27 +159,6 @@ export default function Login({ onLoginSuccess }) {
             </button>
           </form>
 
-          {/* Quick Demo Credentials Box for College Review */}
-          <div
-            style={{
-              marginTop: 'var(--space-md)',
-              padding: '10px 12px',
-              background: 'var(--surface-container-low)',
-              borderRadius: 'var(--radius-md)',
-              border: '1px dashed var(--outline-variant)',
-              fontSize: '12px',
-              color: 'var(--on-surface-variant)',
-            }}
-          >
-            <strong>College Review Demo Credentials:</strong>
-            <div style={{ marginTop: '4px' }}>
-              • <strong>Admin:</strong> {DEFAULT_ADMIN.email} | {DEFAULT_ADMIN.password}
-            </div>
-            <div>
-              • <strong>User:</strong> Register a new account below or use your saved details
-            </div>
-          </div>
-
           {/* Signup Link */}
           <div className="auth-footer">
             <p>

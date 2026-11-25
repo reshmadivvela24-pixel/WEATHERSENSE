@@ -827,15 +827,19 @@ function displayUserGreeting() {
 /**
  * Set up the city search input and buttons.
  */
+let searchDebounceTimer = null;
+
 function setupWeatherSearch() {
   const searchBtn   = document.getElementById('search-btn');
   const locationBtn = document.getElementById('location-btn');
   const searchInput = document.getElementById('city-search-input');
   const retryBtn    = document.getElementById('weather-retry-btn');
+  const suggestionsBox = document.getElementById('search-suggestions-dropdown');
 
   if (searchBtn) {
     searchBtn.addEventListener('click', () => {
       const city = searchInput ? searchInput.value.trim() : '';
+      if (suggestionsBox) suggestionsBox.style.display = 'none';
       if (city) searchByCity(city);
       else showToast('Please enter a city name.', 'error');
     });
@@ -845,8 +849,34 @@ function setupWeatherSearch() {
     searchInput.addEventListener('keydown', (e) => {
       if (e.key === 'Enter') {
         const city = searchInput.value.trim();
+        if (suggestionsBox) suggestionsBox.style.display = 'none';
         if (city) searchByCity(city);
         else showToast('Please enter a city name.', 'error');
+      } else if (e.key === 'Escape') {
+        if (suggestionsBox) suggestionsBox.style.display = 'none';
+      }
+    });
+
+    // Real-time suggestions debounced (count=5)
+    searchInput.addEventListener('input', () => {
+      const query = searchInput.value.trim();
+      if (searchDebounceTimer) clearTimeout(searchDebounceTimer);
+
+      if (query.length < 2) {
+        if (suggestionsBox) suggestionsBox.style.display = 'none';
+        return;
+      }
+
+      searchDebounceTimer = setTimeout(async () => {
+        const suggestions = await fetchCitySuggestions(query);
+        renderCitySuggestions(suggestions);
+      }, 250);
+    });
+
+    // Close suggestions on outside click
+    document.addEventListener('click', (e) => {
+      if (suggestionsBox && !suggestionsBox.contains(e.target) && e.target !== searchInput) {
+        suggestionsBox.style.display = 'none';
       }
     });
   }
@@ -870,6 +900,76 @@ function setupWeatherSearch() {
   if (favBtn) {
     favBtn.addEventListener('click', handleFavoriteToggle);
   }
+
+  // Display initial quick recent searches
+  displayRecentSearches();
+}
+
+/**
+ * Fetch matching city suggestions for auto-complete (count=5)
+ * @param {string} query
+ * @returns {Promise<Array>}
+ */
+async function fetchCitySuggestions(query) {
+  const clean = String(query || '').trim();
+  if (clean.length < 2) return [];
+  const url = `${API.GEOCODING}?name=${encodeURIComponent(clean)}&count=5&language=en&format=json`;
+  try {
+    const res = await fetchWithTimeout(url, {}, 5000);
+    if (!res.ok) return [];
+    const data = await res.json();
+    if (!data.results || !data.results.length) return [];
+    return data.results.map((r) => ({
+      name: r.name,
+      country: r.country || '',
+      admin1: r.admin1 || '',
+      latitude: r.latitude,
+      longitude: r.longitude,
+    }));
+  } catch (e) {
+    console.warn('City suggestions fetch error:', e);
+    return [];
+  }
+}
+
+/**
+ * Render city suggestions dropdown list
+ * @param {Array} suggestions
+ */
+function renderCitySuggestions(suggestions) {
+  const box = document.getElementById('search-suggestions-dropdown');
+  if (!box) return;
+
+  if (!suggestions || !suggestions.length) {
+    box.style.display = 'none';
+    box.innerHTML = '';
+    return;
+  }
+
+  box.innerHTML = suggestions.map((s, idx) => `
+    <div class="search-suggestion-item" data-idx="${idx}">
+      <span class="material-symbols-outlined suggestion-icon" style="font-size:18px; color:var(--primary-interactive,#38bdf8);">location_on</span>
+      <div class="suggestion-meta">
+        <span class="suggestion-name">${escapeHtml(s.name)}</span>
+        <span class="suggestion-country">${escapeHtml([s.admin1, s.country].filter(Boolean).join(', '))}</span>
+      </div>
+    </div>
+  `).join('');
+
+  box.style.display = 'block';
+
+  box.querySelectorAll('.search-suggestion-item').forEach((el) => {
+    el.addEventListener('click', () => {
+      const idx = parseInt(el.dataset.idx, 10);
+      const chosen = suggestions[idx];
+      if (chosen) {
+        const searchInput = document.getElementById('city-search-input');
+        if (searchInput) searchInput.value = chosen.name;
+        box.style.display = 'none';
+        fetchWeather(chosen.latitude, chosen.longitude, chosen.name, chosen.country);
+      }
+    });
+  });
 }
 
 /**
@@ -907,17 +1007,18 @@ async function searchByCity(cityName) {
 }
 
 /**
- * Geocode a city name using Open-Meteo Geocoding API with 10s timeout.
+ * Geocode a city name using Open-Meteo Geocoding API with 10s timeout (count=5).
  * @param {string} cityName
  * @returns {Promise<{name, country, latitude, longitude}|null>}
  */
 async function geocodeCity(cityName) {
-  const url = `${API.GEOCODING}?name=${encodeURIComponent(cityName)}&count=1&language=en&format=json`;
+  const url = `${API.GEOCODING}?name=${encodeURIComponent(cityName.trim())}&count=5&language=en&format=json`;
   const response = await fetchWithTimeout(url, {}, 10000);
   if (!response.ok) throw new Error(`Geocoding server responded with error code ${response.status}`);
   const data = await response.json();
   if (!data.results || data.results.length === 0) return null;
-  const r = data.results[0];
+  const queryLower = cityName.trim().toLowerCase();
+  const r = data.results.find((item) => item.name.toLowerCase() === queryLower) || data.results[0];
   return {
     name:      r.name,
     country:   r.country || '',
@@ -940,9 +1041,10 @@ async function fetchWeather(lat, lon, cityName, country) {
   try {
     const url =
       `${API.WEATHER}?latitude=${lat}&longitude=${lon}` +
-      `&current=temperature_2m,relative_humidity_2m,apparent_temperature,weather_code,wind_speed_10m` +
-      `&daily=weather_code,temperature_2m_max,temperature_2m_min` +
-      `&timezone=auto&forecast_days=5`;
+      `&current=temperature_2m,relative_humidity_2m,apparent_temperature,weather_code,wind_speed_10m,surface_pressure` +
+      `&daily=weather_code,temperature_2m_max,temperature_2m_min,sunrise,sunset` +
+      `&hourly=temperature_2m,relative_humidity_2m,apparent_temperature,weather_code,wind_speed_10m` +
+      `&timezone=auto&forecast_days=7`;
 
     const response = await fetchWithTimeout(url, {}, 10000);
     if (!response.ok) throw new Error(`Weather service returned HTTP error ${response.status}`);
@@ -959,6 +1061,7 @@ async function fetchWeather(lat, lon, cityName, country) {
     currentWMOCode     = data.current.weather_code;
 
     displayCurrentWeather(data, cityName, country);
+    displayHourlyForecast(data);
     displayForecast(data);
     saveRecentSearch(cityName);
     incrementSearchCount();
@@ -969,6 +1072,55 @@ async function fetchWeather(lat, lon, cityName, country) {
     throw err;
   } finally {
     showLoading(false);
+  }
+}
+
+/**
+ * Display Hourly Forecast for the next 24 hours.
+ * @param {Object} data Open-Meteo API response
+ */
+function displayHourlyForecast(data) {
+  const container = document.getElementById('hourly-forecast-scroll');
+  const section = document.getElementById('hourly-forecast-section');
+  if (!container || !section || !data.hourly || !data.hourly.time) return;
+
+  section.hidden = false;
+  section.removeAttribute('hidden');
+  section.classList.remove('hidden');
+  section.style.display = 'block';
+  container.innerHTML = '';
+
+  const nowIso = new Date().toISOString().slice(0, 13);
+  let startIndex = data.hourly.time.findIndex((t) => t.startsWith(nowIso));
+  if (startIndex === -1) startIndex = 0;
+  const next24 = data.hourly.time.slice(startIndex, startIndex + 24);
+
+  next24.forEach((timeStr, idx) => {
+    const actualIdx = startIndex + idx;
+    const tempC = Math.round(data.hourly.temperature_2m[actualIdx]);
+    const code = data.hourly.weather_code[actualIdx];
+    const displayTemp = currentUnit === 'F' ? celsiusToFahrenheit(tempC) : tempC;
+    const timeLabel = idx === 0 ? 'Now' : formatTimeShort(timeStr);
+
+    const card = document.createElement('div');
+    card.className = 'hourly-card';
+    card.dataset.celsius = tempC;
+    card.innerHTML = `
+      <span class="hourly-time">${timeLabel}</span>
+      <span class="hourly-emoji">${getWeatherEmoji(code)}</span>
+      <span class="hourly-temp">${displayTemp}°${currentUnit}</span>
+      <span class="hourly-desc" title="${getWeatherDescription(code)}">${getWeatherDescription(code)}</span>
+    `;
+    container.appendChild(card);
+  });
+}
+
+function formatTimeShort(isoString) {
+  try {
+    const d = new Date(isoString);
+    return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: true });
+  } catch (e) {
+    return isoString.slice(11, 16);
   }
 }
 
@@ -1330,8 +1482,25 @@ function saveRecentSearch(cityName) {
  */
 function displayRecentSearches() {
   const container = document.getElementById('recent-list');
-  if (!container) return;
+  const quickPills = document.getElementById('quick-recent-pills');
   const recent = safeGet(LS_KEYS.RECENT, []);
+
+  if (quickPills) {
+    if (recent.length === 0) {
+      quickPills.innerHTML = '<span style="font-size:12px; color:var(--on-surface-variant,#94a3b8);">No recent searches</span>';
+    } else {
+      quickPills.innerHTML = recent.map(city => `
+        <button type="button" class="quick-recent-pill" data-city="${escapeHtml(city)}">
+          ● ${escapeHtml(city)}
+        </button>
+      `).join('');
+      quickPills.querySelectorAll('.quick-recent-pill').forEach(btn => {
+        btn.addEventListener('click', () => searchByCity(btn.dataset.city));
+      });
+    }
+  }
+
+  if (!container) return;
   if (recent.length === 0) {
     container.innerHTML = `
       <div class="empty-state">

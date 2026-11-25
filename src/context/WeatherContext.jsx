@@ -3,6 +3,7 @@ import {
   geocodeCity,
   getWeatherData,
   reverseGeocode,
+  searchCitySuggestions,
 } from '../services/weatherService';
 import {
   getFavorites,
@@ -32,25 +33,35 @@ export function WeatherProvider({ children }) {
     setUnit((prev) => (prev === 'C' ? 'F' : 'C'));
   };
 
-  // Fetch weather for a given city name
-  const fetchWeather = useCallback(async (cityName) => {
-    const clean = (cityName || '').trim();
-    if (!clean) {
-      setError('Please enter a city name to search.');
-      return false;
+  // Fetch weather for a given city name or location object
+  const fetchWeather = useCallback(async (cityOrLocation) => {
+    let clean = '';
+    let location = null;
+
+    if (cityOrLocation && typeof cityOrLocation === 'object' && cityOrLocation.latitude !== undefined) {
+      location = cityOrLocation;
+      clean = location.name;
+    } else {
+      clean = (cityOrLocation || '').trim();
+      if (!clean) {
+        setError('Please enter a city name to search.');
+        return false;
+      }
     }
 
     setLoading(true);
-    setLoadingMsg(`Searching for "${clean}"...`);
+    setLoadingMsg(`Searching weather for "${clean}"...`);
     setError(null);
 
     try {
-      // 1. Geocode
-      const location = await geocodeCity(clean);
       if (!location) {
-        setError(`City "${clean}" was not found. Please verify spelling and try again.`);
-        setLoading(false);
-        return false;
+        // 1. Geocode with count=5
+        location = await geocodeCity(clean);
+        if (!location) {
+          setError(`City "${clean}" was not found. Please verify spelling.`);
+          setLoading(false);
+          return false;
+        }
       }
 
       setLoadingMsg(`Retrieving live weather for ${location.name}, ${location.country}...`);
@@ -164,6 +175,7 @@ export function WeatherProvider({ children }) {
     recentSearches,
     fetchWeather,
     fetchCurrentLocation,
+    searchSuggestions: searchCitySuggestions,
   };
 
   return <WeatherContext.Provider value={value}>{children}</WeatherContext.Provider>;

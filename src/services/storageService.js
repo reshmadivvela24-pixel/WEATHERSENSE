@@ -128,7 +128,18 @@ export function saveUsers(users) {
   safeSet(STORAGE_KEYS.USERS, users);
 }
 
-export function registerUser({ name, email, password }) {
+export function registerUser(nameOrObj, maybeEmail, maybePassword) {
+  let name, email, password;
+  if (typeof nameOrObj === 'object' && nameOrObj !== null) {
+    name = nameOrObj.name;
+    email = nameOrObj.email;
+    password = nameOrObj.password;
+  } else {
+    name = nameOrObj;
+    email = maybeEmail;
+    password = maybePassword;
+  }
+
   const cleanName = (name || '').trim();
   const cleanEmail = (email || '').trim().toLowerCase();
 
@@ -173,7 +184,7 @@ export function registerUser({ name, email, password }) {
   users.push(newUser);
   saveUsers(users);
 
-  return { success: true, message: 'Account created successfully! Please sign in.', user: newUser };
+  return { success: true, message: 'Account created successfully!', user: newUser };
 }
 
 export function authenticate({ email, password, expectedRole }) {

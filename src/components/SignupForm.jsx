@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 
@@ -12,8 +12,32 @@ export default function SignupForm() {
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
 
+  const nameRef = useRef(null);
+  const emailRef = useRef(null);
+  const passwordRef = useRef(null);
+  const confirmRef = useRef(null);
+
   const { signup } = useAuth();
   const navigate = useNavigate();
+
+  // Sync state if browser autofills inputs without triggering standard input events
+  useEffect(() => {
+    const syncAutofill = () => {
+      if (nameRef.current?.value && !name) setName(nameRef.current.value);
+      if (emailRef.current?.value && !email) setEmail(emailRef.current.value);
+      if (passwordRef.current?.value && !password) setPassword(passwordRef.current.value);
+      if (confirmRef.current?.value && !confirmPassword) setConfirmPassword(confirmRef.current.value);
+    };
+
+    // Run short timer checks for browser password managers and autofill
+    const timer1 = setTimeout(syncAutofill, 100);
+    const timer2 = setTimeout(syncAutofill, 500);
+
+    return () => {
+      clearTimeout(timer1);
+      clearTimeout(timer2);
+    };
+  }, [name, email, password, confirmPassword]);
 
   const validateEmail = (val) => {
     return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(val);
@@ -24,25 +48,39 @@ export default function SignupForm() {
     setError('');
     setSuccess('');
 
-    const cleanName = name.trim();
-    const cleanEmail = email.trim().toLowerCase();
+    // Read values from React state, falling back to DOM inputs in case of silent browser autofill
+    const form = e.currentTarget;
+    const finalName = (name || nameRef.current?.value || form.elements?.['name']?.value || '').trim();
+    const finalEmail = (email || emailRef.current?.value || form.elements?.['email']?.value || '').trim().toLowerCase();
+    const finalPassword = password || passwordRef.current?.value || form.elements?.['password']?.value || '';
+    const finalConfirm = confirmPassword || confirmRef.current?.value || form.elements?.['confirmPassword']?.value || '';
 
-    if (!cleanName || !cleanEmail || !password || !confirmPassword) {
-      setError('All fields are required. Please fill out the entire form.');
+    // Update state to match DOM values
+    setName(finalName);
+    setEmail(finalEmail);
+    setPassword(finalPassword);
+    setConfirmPassword(finalConfirm);
+
+    // 1. Check all required fields are present
+    if (!finalName || !finalEmail || !finalPassword || !finalConfirm) {
+      setError('All fields are required. Please fill out Full Name, Email, Password and Confirm Password.');
       return;
     }
 
-    if (!validateEmail(cleanEmail)) {
-      setError('Please provide a valid email address (e.g. name@college.edu).');
+    // 2. Validate Email format
+    if (!validateEmail(finalEmail)) {
+      setError('Please provide a valid email address (e.g. student@college.edu).');
       return;
     }
 
-    if (password.length < 6) {
+    // 3. Validate Password length
+    if (finalPassword.length < 6) {
       setError('Password must contain at least 6 characters.');
       return;
     }
 
-    if (password !== confirmPassword) {
+    // 4. Validate Password and Confirm Password match
+    if (finalPassword !== finalConfirm) {
       setError('Passwords do not match. Please re-enter your password.');
       return;
     }
@@ -50,7 +88,7 @@ export default function SignupForm() {
     setLoading(true);
 
     try {
-      const res = await signup(cleanName, cleanEmail, password);
+      const res = await signup(finalName, finalEmail, finalPassword);
 
       if (!res.success) {
         setError(res.message || 'Signup failed. Please try a different email.');
@@ -58,10 +96,11 @@ export default function SignupForm() {
         return;
       }
 
-      setSuccess('Account created successfully! Redirecting you to sign in...');
+      setSuccess('Account created successfully! Redirecting to Dashboard...');
       setTimeout(() => {
-        navigate('/login', { replace: true });
-      }, 1500);
+        // Redirect directly to User Dashboard
+        navigate('/dashboard', { replace: true });
+      }, 1000);
     } catch (err) {
       setError('An error occurred during account creation. Please try again.');
       setLoading(false);
@@ -87,7 +126,7 @@ export default function SignupForm() {
 
       {/* Success Notification */}
       {success && (
-        <div className="ws-alert ws-alert-success">
+        <div className="ws-alert ws-alert-success" role="alert">
           <span className="ws-alert-icon">✓</span>
           <span>{success}</span>
         </div>
@@ -95,13 +134,13 @@ export default function SignupForm() {
 
       {/* Error Notification */}
       {error && (
-        <div className="ws-alert ws-alert-danger">
+        <div className="ws-alert ws-alert-danger" role="alert">
           <span className="ws-alert-icon">⚠️</span>
           <span>{error}</span>
         </div>
       )}
 
-      <form onSubmit={handleSubmit} className="ws-form">
+      <form onSubmit={handleSubmit} className="ws-form" noValidate>
         <div className="ws-form-group">
           <label className="ws-form-label" htmlFor="signup-name">
             Full Name
@@ -109,12 +148,22 @@ export default function SignupForm() {
           <div className="ws-input-wrapper">
             <span className="ws-input-icon">👤</span>
             <input
+              ref={nameRef}
               id="signup-name"
+              name="name"
               type="text"
               className="ws-input"
               placeholder="e.g. Aarav Patel"
               value={name}
-              onChange={(e) => setName(e.target.value)}
+              onChange={(e) => {
+                setName(e.target.value);
+                if (error) setError('');
+              }}
+              onInput={(e) => {
+                setName(e.target.value);
+                if (error) setError('');
+              }}
+              autoComplete="name"
               required
             />
           </div>
@@ -127,14 +176,23 @@ export default function SignupForm() {
           <div className="ws-input-wrapper">
             <span className="ws-input-icon">✉️</span>
             <input
+              ref={emailRef}
               id="signup-email"
+              name="email"
               type="email"
               className="ws-input"
               placeholder="student@college.edu"
               value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              required
+              onChange={(e) => {
+                setEmail(e.target.value);
+                if (error) setError('');
+              }}
+              onInput={(e) => {
+                setEmail(e.target.value);
+                if (error) setError('');
+              }}
               autoComplete="email"
+              required
             />
           </div>
         </div>
@@ -146,20 +204,30 @@ export default function SignupForm() {
           <div className="ws-input-wrapper">
             <span className="ws-input-icon">🔒</span>
             <input
+              ref={passwordRef}
               id="signup-password"
+              name="password"
               type={showPassword ? 'text' : 'password'}
               className="ws-input"
               placeholder="At least 6 characters"
               value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              required
+              onChange={(e) => {
+                setPassword(e.target.value);
+                if (error) setError('');
+              }}
+              onInput={(e) => {
+                setPassword(e.target.value);
+                if (error) setError('');
+              }}
               autoComplete="new-password"
+              required
             />
             <button
               type="button"
               className="ws-pw-toggle"
               onClick={() => setShowPassword(!showPassword)}
               title={showPassword ? 'Hide password' : 'Show password'}
+              aria-label={showPassword ? 'Hide password' : 'Show password'}
             >
               {showPassword ? '🙈' : '👁️'}
             </button>
@@ -173,14 +241,23 @@ export default function SignupForm() {
           <div className="ws-input-wrapper">
             <span className="ws-input-icon">🔒</span>
             <input
+              ref={confirmRef}
               id="signup-confirm"
+              name="confirmPassword"
               type={showPassword ? 'text' : 'password'}
               className="ws-input"
               placeholder="Re-enter your password"
               value={confirmPassword}
-              onChange={(e) => setConfirmPassword(e.target.value)}
-              required
+              onChange={(e) => {
+                setConfirmPassword(e.target.value);
+                if (error) setError('');
+              }}
+              onInput={(e) => {
+                setConfirmPassword(e.target.value);
+                if (error) setError('');
+              }}
               autoComplete="new-password"
+              required
             />
           </div>
         </div>

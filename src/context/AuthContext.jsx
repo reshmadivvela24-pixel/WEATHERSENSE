@@ -34,8 +34,32 @@ export function AuthProvider({ children }) {
     return result;
   };
 
-  const signup = async (name, email, password) => {
-    return registerUser(name, email, password);
+  const signup = async (nameOrObj, email, password) => {
+    let name, userEmail, userPassword;
+    if (typeof nameOrObj === 'object' && nameOrObj !== null) {
+      name = nameOrObj.name;
+      userEmail = nameOrObj.email;
+      userPassword = nameOrObj.password;
+    } else {
+      name = nameOrObj;
+      userEmail = email;
+      userPassword = password;
+    }
+
+    const result = registerUser(name, userEmail, userPassword);
+    if (result.success && result.user) {
+      const sessionUser = {
+        id: result.user.id,
+        name: result.user.name,
+        email: result.user.email,
+        role: result.user.role || 'user',
+        phone: result.user.phone || '',
+        bio: result.user.bio || 'Student at College of Engineering',
+      };
+      setSession(sessionUser);
+      setCurrentUser(sessionUser);
+    }
+    return result;
   };
 
   const logout = () => {

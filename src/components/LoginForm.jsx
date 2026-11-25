@@ -17,14 +17,8 @@ export default function LoginForm({ initialRole = 'user' }) {
   const handleRoleChange = (newRole) => {
     setRole(newRole);
     setError('');
-    // Auto fill admin credentials for convenience during college review
-    if (newRole === 'admin') {
-      setEmail('admin@gmail.com');
-      setPassword('admin123');
-    } else {
-      setEmail('');
-      setPassword('');
-    }
+    setEmail('');
+    setPassword('');
   };
 
   const handleSubmit = async (e) => {
@@ -94,15 +88,6 @@ export default function LoginForm({ initialRole = 'user' }) {
         </p>
       </div>
 
-      {/* Reviewer Quick Hint for Admin Credentials */}
-      {role === 'admin' && (
-        <div className="ws-admin-hint">
-          <strong>Reviewer Demo Credentials:</strong>
-          <div className="ws-hint-row">Email: <code>admin@gmail.com</code></div>
-          <div className="ws-hint-row">Password: <code>admin123</code></div>
-        </div>
-      )}
-
       {/* Error Message Alert */}
       {error && (
         <div className="ws-alert ws-alert-danger">
@@ -122,7 +107,7 @@ export default function LoginForm({ initialRole = 'user' }) {
               id="login-email"
               type="email"
               className="ws-input"
-              placeholder={role === 'admin' ? 'admin@gmail.com' : 'student@college.edu'}
+              placeholder={role === 'admin' ? 'admin@college.edu' : 'student@college.edu'}
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               required

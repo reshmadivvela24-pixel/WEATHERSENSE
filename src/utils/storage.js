@@ -90,7 +90,18 @@ export function clearCurrentUser() {
  * Register a new user
  * NOTE: Role is always hardcoded to 'user'. Never allow selecting 'admin' during signup.
  */
-export function registerUser(name, email, password) {
+export function registerUser(nameOrObj, maybeEmail, maybePassword) {
+  let name, email, password;
+  if (typeof nameOrObj === 'object' && nameOrObj !== null) {
+    name = nameOrObj.name;
+    email = nameOrObj.email;
+    password = nameOrObj.password;
+  } else {
+    name = nameOrObj;
+    email = maybeEmail;
+    password = maybePassword;
+  }
+
   const cleanName = (name || '').trim();
   const cleanEmail = (email || '').trim().toLowerCase();
 

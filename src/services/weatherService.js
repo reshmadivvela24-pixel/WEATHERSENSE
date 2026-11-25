@@ -31,11 +31,11 @@ async function fetchWithTimeout(url, options = {}, timeoutMs = 10000) {
 }
 
 /**
- * Geocode city name to Latitude, Longitude, and Country
+ * Geocode city name to Latitude, Longitude, and Country (queries count=5)
  */
 export async function geocodeCity(cityName) {
   const cleanName = encodeURIComponent(cityName.trim());
-  const url = `${GEOCODING_BASE}?name=${cleanName}&count=1&language=en&format=json`;
+  const url = `${GEOCODING_BASE}?name=${cleanName}&count=5&language=en&format=json`;
 
   const res = await fetchWithTimeout(url);
   if (!res.ok) {
@@ -47,15 +47,50 @@ export async function geocodeCity(cityName) {
     return null; // City not found
   }
 
-  const first = data.results[0];
+  // Find exact case-insensitive match or fallback to first
+  const queryLower = cityName.trim().toLowerCase();
+  const matched =
+    data.results.find((r) => r.name.toLowerCase() === queryLower) || data.results[0];
+
   return {
-    name: first.name,
-    country: first.country || '',
-    countryCode: first.country_code || '',
-    latitude: first.latitude,
-    longitude: first.longitude,
-    timezone: first.timezone || 'auto',
+    name: matched.name,
+    country: matched.country || '',
+    countryCode: matched.country_code || '',
+    latitude: matched.latitude,
+    longitude: matched.longitude,
+    timezone: matched.timezone || 'auto',
+    displayName: [matched.name, matched.admin1, matched.country].filter(Boolean).join(', '),
   };
+}
+
+/**
+ * Fetch matching city suggestions for search auto-complete (count=5)
+ */
+export async function searchCitySuggestions(query) {
+  const clean = (query || '').trim();
+  if (clean.length < 2) return [];
+  const cleanName = encodeURIComponent(clean);
+  const url = `${GEOCODING_BASE}?name=${cleanName}&count=5&language=en&format=json`;
+
+  try {
+    const res = await fetchWithTimeout(url, {}, 6000);
+    if (!res.ok) return [];
+    const data = await res.json();
+    if (!data.results || !data.results.length) return [];
+    return data.results.map((r) => ({
+      name: r.name,
+      country: r.country || '',
+      admin1: r.admin1 || '',
+      latitude: r.latitude,
+      longitude: r.longitude,
+      timezone: r.timezone || 'auto',
+      displayName: [r.name, r.admin1, r.country].filter(Boolean).join(', '),
+      label: [r.name, r.country].filter(Boolean).join(', '),
+    }));
+  } catch (err) {
+    console.warn('Geocoding suggestions error:', err);
+    return [];
+  }
 }
 
 /**
@@ -83,16 +118,16 @@ export async function reverseGeocode(latitude, longitude) {
  * Fetch Comprehensive Weather Data:
  * - Current Temperature, Feels Like, Humidity, Wind, Pressure, Weather Code
  * - Sunrise & Sunset for today
- * - Hourly Visibility for the current hour
- * - 5-Day Daily Forecast with Max/Min temps
+ * - Hourly Forecast (next 24+ hours) with temp, weather code, humidity, wind, pressure
+ * - 7-Day Daily Forecast with Max/Min temps
  */
 export async function getWeatherData(latitude, longitude) {
   const url =
     `${FORECAST_BASE}?latitude=${latitude}&longitude=${longitude}` +
     `&current=temperature_2m,relative_humidity_2m,apparent_temperature,weather_code,wind_speed_10m,surface_pressure` +
     `&daily=weather_code,temperature_2m_max,temperature_2m_min,sunrise,sunset` +
-    `&hourly=visibility` +
-    `&timezone=auto&forecast_days=6`;
+    `&hourly=temperature_2m,relative_humidity_2m,apparent_temperature,weather_code,wind_speed_10m,surface_pressure,visibility` +
+    `&timezone=auto&forecast_days=7`;
 
   const res = await fetchWithTimeout(url);
   if (!res.ok) {
@@ -111,7 +146,7 @@ export async function getWeatherData(latitude, longitude) {
     const index = data.hourly.time.findIndex((t) => t.startsWith(nowIso));
     if (index !== -1 && data.hourly.visibility[index] !== undefined) {
       currentVisibilityKm = Math.round(data.hourly.visibility[index] / 100) / 10;
-    } else if (data.hourly.visibility[0]) {
+    } else if (data.hourly.visibility[0] !== undefined) {
       currentVisibilityKm = Math.round(data.hourly.visibility[0] / 100) / 10;
     }
   }
@@ -136,6 +171,16 @@ export async function getWeatherData(latitude, longitude) {
       minTemp: data.daily.temperature_2m_min,
       sunrise: data.daily.sunrise,
       sunset: data.daily.sunset,
+    },
+    hourly: {
+      time: data.hourly?.time || [],
+      temperature: data.hourly?.temperature_2m || [],
+      weatherCode: data.hourly?.weather_code || [],
+      humidity: data.hourly?.relative_humidity_2m || [],
+      feelsLike: data.hourly?.apparent_temperature || [],
+      windSpeed: data.hourly?.wind_speed_10m || [],
+      pressure: data.hourly?.surface_pressure || [],
+      visibility: data.hourly?.visibility || [],
     },
   };
 }
